@@ -6,14 +6,14 @@ It tracks your daily spending, shows everything on a modern dark-themed dashboar
 
 ---
 
-## ✨ Key Features
+##  Key Features
 * **Friendly Dashboard**: A clean, dark-mode visual interface to see where your money is going (EC2, Lambda, S3, etc.).
 * **Smart Alerting**: Set a budget (e.g., $100/month) and get an email the second your costs cross that limit.
 * **Completely Serverless**: Built using modern AWS technology (Lambda functions and DynamoDB) so it costs virtually nothing to run.
 
 ---
 
-## 🛠️ Quick Start (Run it locally)
+##  Quick Start (Run it locally)
 
 You can run this entire application on your computer without connecting to your real AWS account! 
 
@@ -39,7 +39,7 @@ Go to **[http://localhost:3000](http://localhost:3000)** in your browser to see 
 
 ---
 
-## 🚀 Deploying to AWS (Make it live)
+##  Deploying to AWS (Make it live)
 
 When you're ready to deploy this to your real AWS account:
 
@@ -62,7 +62,7 @@ When you're ready to deploy this to your real AWS account:
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 * `/dashboard` - The React frontend dashboard website.
 * `/src` - The backend Lambda functions that fetch and check cost metrics.
 * `template.yaml` - The blueprint AWS SAM uses to set up your cloud infrastructure.
