@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  aws-cost-monitor
+  AWS SAM Template for serverless Cloud Cost Monitoring and alerting system.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Email address to receive budget breach notifications and warnings.
+  MonthlyThreshold:
+    Type: Number
+    Default: 50
+    Description: Base monthly budget threshold limit in USD.
+
+Globals:
+  Function:
+    Runtime: python3.11
+    MemorySize: 128
+    Architectures:
+      - x86_64
+  Api:
+    Cors:
+      AllowMethods: "'GET,PUT,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+      AllowOrigin: "'*'"
+
+Resources:
+  # 1. DynamoDB Tables
+  CostMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CostMetrics
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: service
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: service
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+
+  AlertConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: AlertConfig
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: config_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: config_id
+          KeyType: HASH
+
+  # 2. SNS Topic for alert dispatch
+  CostAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: aws-cost-alerts-topic
+      Subscription:
+        - Endpoint: !Ref AlertEmail
+          Protocol: email
+
+  # 3. Serverless Lambda Functions
+  MetricCollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/metric-collector/
+      Handler: handler.lambda_handler
+      Timeout: 60
+      Description: Aggregates daily cloud metrics and saves to CostMetrics DynamoDB.
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Ref CostMetricsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostMetricsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AlertConfigTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: "*"
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
+            Enabled: true
+
+  AlertCheckerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/alert-checker/
+      Handler: handler.lambda_handler
+      Timeout: 60
+      Description: Evaluates MTD and projected costs, sending alerts via SNS upon breach.
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_COST: !Ref CostMetricsTable
+          DYNAMODB_TABLE_CONFIG: !Ref AlertConfigTable
+          SNS_TOPIC_ARN: !Ref CostAlertTopic
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostMetricsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AlertConfigTable
+        - SNSPublishMessagePolicy:
+            TopicArn: !Ref CostAlertTopic
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 hour)
+            Enabled: true
+
+  ApiHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/api-handler/
+      Handler: handler.lambda_handler
+      Timeout: 10
+      Description: Provides REST API Gateway endpoints for Recharts ingestion and system settings.
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_COST: !Ref CostMetricsTable
+          DYNAMODB_TABLE_CONFIG: !Ref AlertConfigTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CostMetricsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AlertConfigTable
+      Events:
+        GetMetricsEvent:
+          Type: Api
+          Properties:
+            Path: /metrics
+            Method: get
+        GetSummaryEvent:
+          Type: Api
+          Properties:
+            Path: /summary
+            Method: get
+        PutConfigEvent:
+          Type: Api
+          Properties:
+            Path: /config
+            Method: put
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway base endpoint URL for Prod environment"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  CostAlertTopicArn:
+    Description: "SNS Cost Alert Topic ARN"
+    Value: !Ref CostAlertTopic
+  CostMetricsTableName:
+    Description: "CostMetrics DynamoDB Table Name"
+    Value: !Ref CostMetricsTable
+  AlertConfigTableName:
+    Description: "AlertConfig DynamoDB Table Name"
+    Value: !Ref AlertConfigTable

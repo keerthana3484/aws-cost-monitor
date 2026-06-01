@@ -1,0 +1,9 @@
+# AWS SDK & AWS Lambda utilities
+boto3>=1.26.0
+aws-lambda-powertools>=2.0.0
+
+# Local testing & development tools
+pytest>=7.0.0
+pytest-mock>=3.10.0
+black>=23.0.0
+flake8>=6.0.0
