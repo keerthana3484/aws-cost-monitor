@@ -1,17 +1,17 @@
-# AWS Cloud Cost Monitor 📊☁️
+# AWS Cloud Cost Monitor 
 
 Welcome! This is a simple, beautiful tool designed to help you keep track of your AWS costs so you never get surprised by a high bill. 
 
 It tracks your daily spending, shows everything on a modern dark-themed dashboard, and sends you an email alert if you go over your budget.
 
----
+
 
 ##  Key Features
 * **Friendly Dashboard**: A clean, dark-mode visual interface to see where your money is going (EC2, Lambda, S3, etc.).
 * **Smart Alerting**: Set a budget (e.g., $100/month) and get an email the second your costs cross that limit.
 * **Completely Serverless**: Built using modern AWS technology (Lambda functions and DynamoDB) so it costs virtually nothing to run.
 
----
+
 
 ##  Quick Start (Run it locally)
 
@@ -37,7 +37,7 @@ npm start
 ```
 Go to **[http://localhost:3000](http://localhost:3000)** in your browser to see your cost graphs!
 
----
+
 
 ##  Deploying to AWS (Make it live)
 
@@ -60,7 +60,7 @@ When you're ready to deploy this to your real AWS account:
    make destroy
    ```
 
----
+
 
 ##  Project Structure
 * `/dashboard` - The React frontend dashboard website.
